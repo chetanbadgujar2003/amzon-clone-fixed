@@ -1,0 +1,48 @@
+services:
+  backend:
+    build: ./backend
+    container_name: ac_backend
+    environment:
+      - DEBUG=True
+      - ALLOWED_HOSTS=*
+    volumes:
+      - backend_data:/app/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - ac_network
+
+  frontend:
+    build: ./frontend
+    container_name: ac_frontend
+    environment:
+      - VITE_BACKEND_URL=http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - ac_network
+
+volumes:
+  backend_data:
+
+networks:
+  ac_network:
+    name: ac_network
+    driver: bridge
